@@ -9,15 +9,17 @@ object GatlingPlugin extends Plugin {
         val extracted: Extracted = Project.extract(state)
         import extracted._
 
-        println("takatak'ing")
-
         val compileSource = Keys.compile in (currentRef, GatlingTest)
+
+        val launchTest = Keys.test in (currentRef, GatlingTest)
+
 
         // Evaluate the task
         // None if the key is not defined
         // Some(Inc) if the task does not complete successfully (Inc for incomplete)
         // Some(Value(v)) with the resulting value
         val result: Option[Result[inc.Analysis]] = Project.evaluateTask(compileSource, state)
+
         // handle the result
         result match {
             case None => {
@@ -35,13 +37,14 @@ object GatlingPlugin extends Plugin {
                 // do something with v: inc.Analysis
                 println("should have been compiled...")
                 //execute gatling simulations that have just been compiled
-                println(v)
+                
+                sys.props += ("sbt.gatling.conf.file" -> extracted.get(galtlingConfFile).getPath)
+                sys.props += ("sbt.gatling.result.dir" -> extracted.get(gatlingResultDir).getPath)
 
-
-                //todo initialize Gatling : drop here what have been done in the play-plugin
-
-                //todo use the test framework for gatling 
-                // => simply use 'test' in the current scope/conf (GatlingTest)
+                val testsLaunched = Project.evaluateTask(launchTest, state)
+                
+                println("Print test launched result")
+                println(testsLaunched)
 
                 state
             }
@@ -51,6 +54,7 @@ object GatlingPlugin extends Plugin {
                 state.fail
             }
 
+
         }
 
     }
@@ -58,13 +62,24 @@ object GatlingPlugin extends Plugin {
     val gatlingTakatak = Command.command("takatak")(action)
 
     lazy val galtlingConfFile = SettingKey[File]("gatling-conf-file", "The Gatling-Tool configuration file") in GatlingTest
+    lazy val gatlingResultDir = SettingKey[File]("gatling-result-dir", "The Gatling-Tool result dir") in GatlingTest
 
     val gatlingSettings = inConfig(GatlingTest)(baseGatlingSettings)
 
+    val gatlingTestFramework = new TestFramework("be.nextlab.gatling.sbt.plugin.GatlingFramework")
+
     lazy val baseGatlingSettings = Defaults.testSettings ++ Seq(
         galtlingConfFile <<= baseDirectory { _ / "src" / "gatling-test" / "conf" / "galing.conf" },
+        gatlingResultDir <<= target { _ / "gatling-test" / "result" },
         sourceDirectories <+= baseDirectory { _ / "src" / "gatling-test" / "simulations" },
         scalaSource <<= baseDirectory { base => base / "src" / "gatling-test" / "simulations" },
-        commands ++= Seq(gatlingTakatak)
+        classDirectory <<= (target, scalaVersion) { (t, sv) => t / ("scala-"+sv) / "gatling-test-classes"},
+        commands ++= Seq(gatlingTakatak),
+        testFrameworks := Seq(gatlingTestFramework),
+
+        classpathConfiguration := Compile,
+
+        logLevel := Level.Debug
     )
+
 }
