@@ -34,18 +34,10 @@ object GatlingPlugin extends Plugin {
                 state.fail
             }
             case Some(Value(v)) => {
-                // do something with v: inc.Analysis
-                println("should have been compiled...")
                 //execute gatling simulations that have just been compiled
-                
                 sys.props += ("sbt.gatling.conf.file" -> extracted.get(galtlingConfFile).getPath)
                 sys.props += ("sbt.gatling.result.dir" -> extracted.get(gatlingResultDir).getPath)
-
                 val testsLaunched = Project.evaluateTask(launchTest, state)
-                
-                println("Print test launched result")
-                println(testsLaunched)
-
                 state
             }
 
@@ -77,7 +69,7 @@ object GatlingPlugin extends Plugin {
         commands ++= Seq(gatlingTakatak),
         testFrameworks := Seq(gatlingTestFramework),
 
-        classpathConfiguration := Compile,
+        //classpathConfiguration := Test,
 
         logLevel := Level.Debug
     )
