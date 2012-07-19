@@ -2,6 +2,18 @@ import sbt._
 import Keys._
 
 object GatlingPlugin extends Plugin {
+    /* OFFICIAL GATLING REPO */
+    val gatlingReleasesRepo = "Gatling Releases Repo" at "http://repository.excilys.com/content/repositories/releases"
+    val gatling3PartyRepo = "Gatling Third-Party Repo" at "http://repository.excilys.com/content/repositories/thirdparty"
+
+    /* GATLING DEPS */
+    val gatlingVersionNumber = "1.2.5"
+    val gatlingApp = "com.excilys.ebi.gatling" % "gatling-app" % gatlingVersionNumber  % "gatling-test"//withSources
+    val gatlingCore = "com.excilys.ebi.gatling" % "gatling-core" % gatlingVersionNumber  % "gatling-test"//withSources
+    val gatlingHttp = "com.excilys.ebi.gatling" % "gatling-http" % gatlingVersionNumber  % "gatling-test"//withSources
+    val gatlingRecorder = "com.excilys.ebi.gatling" % "gatling-recorder" % gatlingVersionNumber  % "gatling-test"//withSources
+    val gatlingCharts = "com.excilys.ebi.gatling" % "gatling-charts" % gatlingVersionNumber  % "gatling-test"//withSources
+    val gatlingHighcharts = "com.excilys.ebi.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersionNumber  % "gatling-test"//withSources
 
     val GatlingTest = config("gatling-test") extend (Test)
 
@@ -56,11 +68,27 @@ object GatlingPlugin extends Plugin {
     lazy val galtlingConfFile = SettingKey[File]("gatling-conf-file", "The Gatling-Tool configuration file") in GatlingTest
     lazy val gatlingResultDir = SettingKey[File]("gatling-result-dir", "The Gatling-Tool result dir") in GatlingTest
 
+    val pluginDependencies = Seq(
+        gatlingApp,
+        gatlingCore,
+        gatlingHttp,
+        gatlingRecorder,
+        gatlingCharts,
+        gatlingHighcharts,
+
+        /*todo shouldn't be here...*/
+        "be.nextlab" %% "gatling-sbt-test-framework" % "0.0.1-SNAPSHOT" % "gatling-test"
+    )
+
     val gatlingSettings = inConfig(GatlingTest)(baseGatlingSettings)
 
     val gatlingTestFramework = new TestFramework("be.nextlab.gatling.sbt.plugin.GatlingFramework")
 
+
     lazy val baseGatlingSettings = Defaults.testSettings ++ Seq(
+        resolvers ++= Seq(gatlingReleasesRepo, gatling3PartyRepo),
+        libraryDependencies ++= pluginDependencies,
+
         galtlingConfFile <<= baseDirectory { _ / "src" / "gatling-test" / "conf" / "galing.conf" },
         gatlingResultDir <<= target { _ / "gatling-test" / "result" },
         sourceDirectories <+= baseDirectory { _ / "src" / "gatling-test" / "simulations" },
