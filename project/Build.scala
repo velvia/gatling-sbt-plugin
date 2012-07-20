@@ -2,6 +2,9 @@ import sbt._
 import Keys._
 
 object GatlingBuild extends Build {
+    val SNAPSHOT = "-SNAPSHOT"
+
+    val buildVersion = "0.0.1-SNAPSHOT"
 
 
     lazy val gatlingProject = Project("gatling-sbt-plugin", file("."), settings=gatlingSettings)
@@ -22,6 +25,14 @@ object GatlingBuild extends Build {
 	val gatlingCharts = "com.excilys.ebi.gatling" % "gatling-charts" % gatlingVersionNumber //withSources
 	val gatlingHighcharts = "com.excilys.ebi.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersionNumber //withSources
 
+    val cloudbees = "https://repository-andy-petrella.forge.cloudbees.com/"
+    val cloudbeesRepo = buildVersion match {
+        case x if x.endsWith(SNAPSHOT) => x.toLowerCase at cloudbees + "snapshot" + "/"
+        case x => x.toLowerCase at cloudbees + "release" + "/"
+    }
+
+    val cloudbeesCredentials = Credentials(file("project/cloudbees.credentials"))
+
     lazy val libDependencies = Seq(
 		/*gatlingApp,
 		gatlingCore,
@@ -34,12 +45,16 @@ object GatlingBuild extends Build {
 
     lazy val gatlingSettings = Defaults.defaultSettings/* ++ ScriptedPlugin.scriptedSettings */++ Seq(
         sbtPlugin := true,
-        version := "0.0.1-SNAPSHOT",
+        version := buildVersion,
         organization := "be.nextlab",
 
         resolvers ++= Seq(gatlingReleasesRepo, gatling3PartyRepo, localMavenRepo),
 
-	    libraryDependencies ++= libDependencies
+	    libraryDependencies ++= libDependencies,
+        
+        publishMavenStyle := true,
+        publishTo := Some(cloudbeesRepo),
+        credentials += cloudbeesCredentials
     )
 
    
